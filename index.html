@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decathlon Running Guide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        /* Decathlon Branding Colors */
+        :root { --decathlon-blue: #007ABD; }
+        body { font-family: 'Roboto', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50" x-data="quizApp()">
+    <header class="bg-[#007ABD] p-4 text-white font-bold flex justify-between">
+        <span>DECATHLON</span>
+        <button @click="lang = lang === 'en' ? 'zh' : 'en'" class="border px-2 py-1 text-xs rounded uppercase" x-text="lang === 'en' ? '中文' : 'EN'"></button>
+    </header>
+
+    <div class="max-w-md mx-auto p-6 bg-white min-h-screen shadow-lg">
+        <div x-show="step <= 3">
+            <h2 class="text-2xl font-bold mb-6" x-text="questions[lang][step-1].title"></h2>
+            <div class="space-y-4">
+                <template x-for="option in questions[lang][step-1].options">
+                    <button @click="handleAnswer(option.value)" 
+                            class="w-full text-left p-4 border-2 border-gray-100 rounded-xl hover:border-[#007ABD] transition-all">
+                        <div class="font-bold" x-text="option.label"></div>
+                        <div class="text-sm text-gray-500" x-text="option.desc"></div>
+                    </button>
+                </template>
+            </div>
+        </div>
+
+        <div x-show="step === 4">
+            <h2 class="text-2xl font-bold mb-4" x-text="lang === 'en' ? 'Recommended for You' : '為你推薦'"></h2>
+            <div class="space-y-4">
+                <template x-for="shoe in filteredShoes()">
+                    <div class="border rounded-lg p-4 flex gap-4 bg-white shadow-sm">
+                        <img :src="shoe.img" class="w-24 h-24 object-contain">
+                        <div>
+                            <div class="font-bold text-sm" x-text="lang === 'en' ? shoe.name_en : shoe.name_zh"></div>
+                            <div class="text-[#007ABD] font-black text-xl mt-1">$<span x-text="shoe.price"></span></div>
+                            <a :href="lang === 'en' ? shoe.url_en : shoe.url_zh" class="text-xs underline text-gray-400 mt-2 block uppercase font-bold">Details</a>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <button @click="step = 1; answers = {}" class="w-full mt-8 py-2 text-gray-400 text-sm italic" x-text="lang === 'en' ? 'Start Over' : '重新開始'"></button>
+        </div>
+    </div>
+
+    <script src="products.js"></script>
+    <script>
+        function quizApp() {
+            return {
+                step: 1, lang: 'zh', answers: {},
+                questions: {
+                    en: [
+                        { title: "Your Goal?", options: [{label: "Comfort", desc: "For slow daily runs", value: "comfort"}, {label: "Speed", desc: "For racing & PB", value: "performance"}] },
+                        { title: "Your Budget?", options: [{label: "$", desc: "Below 700", value: "low"}, {label: "$$$", desc: "Above 700", value: "high"}] }
+                    ],
+                    zh: [
+                        { title: "你的目標？", options: [{label: "舒適避震", desc: "日常慢跑與恢復", value: "comfort"}, {label: "速度競賽", desc: "追求破紀錄的快感", value: "performance"}] },
+                        { title: "預算範圍？", options: [{label: "入門/進階", desc: "700 元以下", value: "low"}, {label: "專業旗艦", desc: "700 元以上", value: "high"}] }
+                    ]
+                },
+                handleAnswer(val) {
+                    if(this.step === 1) this.answers.goal = val;
+                    if(this.step === 2) this.answers.budget = val;
+                    this.step++;
+                },
+                filteredShoes() {
+                    return products.filter(p => {
+                        const matchGoal = p.tags.includes(this.answers.goal);
+                        const matchBudget = (this.answers.budget === 'low' ? p.price < 700 : p.price >= 700);
+                        return matchGoal && matchBudget;
+                    }).slice(0, 3);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

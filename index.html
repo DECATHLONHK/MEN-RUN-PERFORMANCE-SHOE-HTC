@@ -1,79 +1,112 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decathlon Running Guide</title>
+    <title>Shoe Finder | Decathlon</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        /* Decathlon Branding Colors */
-        :root { --decathlon-blue: #007ABD; }
-        body { font-family: 'Roboto', sans-serif; }
+        body { font-family: 'Roboto', sans-serif; background-color: #f4f7f9; }
+        .decathlon-blue { color: #007ABD; }
+        .bg-decathlon { background-color: #007ABD; }
+        /* 模仿範例網站的大按鈕樣式 */
+        .option-card {
+            @apply bg-white border-2 border-transparent rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-[#007ABD] transition-all cursor-pointer flex flex-col items-center text-center;
+        }
+        .active-card { @apply border-[#007ABD] bg-blue-50; }
     </style>
 </head>
-<body class="bg-gray-50" x-data="quizApp()">
-    <header class="bg-[#007ABD] p-4 text-white font-bold flex justify-between">
-        <span>DECATHLON</span>
-        <button @click="lang = lang === 'en' ? 'zh' : 'en'" class="border px-2 py-1 text-xs rounded uppercase" x-text="lang === 'en' ? '中文' : 'EN'"></button>
-    </header>
+<body x-data="shoeApp()">
 
-    <div class="max-w-md mx-auto p-6 bg-white min-h-screen shadow-lg">
-        <div x-show="step <= 3">
-            <h2 class="text-2xl font-bold mb-6" x-text="questions[lang][step-1].title"></h2>
-            <div class="space-y-4">
-                <template x-for="option in questions[lang][step-1].options">
-                    <button @click="handleAnswer(option.value)" 
-                            class="w-full text-left p-4 border-2 border-gray-100 rounded-xl hover:border-[#007ABD] transition-all">
-                        <div class="font-bold" x-text="option.label"></div>
-                        <div class="text-sm text-gray-500" x-text="option.desc"></div>
-                    </button>
-                </template>
-            </div>
+    <nav class="bg-decathlon p-4 text-white shadow-md flex justify-between items-center">
+        <div class="font-black italic text-xl tracking-tighter cursor-pointer" @click="reset()">DECATHLON</div>
+        <button @click="toggleLang()" class="border border-white px-3 py-1 rounded-full text-xs font-bold uppercase" x-text="lang === 'en' ? '繁體中文' : 'ENGLISH'"></button>
+    </nav>
+
+    <main class="max-w-2xl mx-auto px-6 py-10">
+        
+        <div class="w-full bg-gray-200 h-1.5 rounded-full mb-10 overflow-hidden">
+            <div class="bg-decathlon h-full transition-all duration-500" :style="'width:' + (step/4)*100 + '%'"></div>
         </div>
 
-        <div x-show="step === 4">
-            <h2 class="text-2xl font-bold mb-4" x-text="lang === 'en' ? 'Recommended for You' : '為你推薦'"></h2>
-            <div class="space-y-4">
-                <template x-for="shoe in filteredShoes()">
-                    <div class="border rounded-lg p-4 flex gap-4 bg-white shadow-sm">
-                        <img :src="shoe.img" class="w-24 h-24 object-contain">
-                        <div>
-                            <div class="font-bold text-sm" x-text="lang === 'en' ? shoe.name_en : shoe.name_zh"></div>
-                            <div class="text-[#007ABD] font-black text-xl mt-1">$<span x-text="shoe.price"></span></div>
-                            <a :href="lang === 'en' ? shoe.url_en : shoe.url_zh" class="text-xs underline text-gray-400 mt-2 block uppercase font-bold">Details</a>
-                        </div>
+        <div x-show="step <= 3" x-transition>
+            <h1 class="text-3xl font-black text-gray-900 mb-2" x-text="currentQuestion().title"></h1>
+            <p class="text-gray-500 mb-8" x-text="currentQuestion().subtitle"></p>
+
+            <div class="grid grid-cols-1 gap-4">
+                <template x-for="opt in currentQuestion().options">
+                    <div class="option-card" @click="handleSelect(opt.value)">
+                        <span class="text-xl font-bold text-gray-800" x-text="opt.label"></span>
+                        <span class="text-sm text-gray-500 mt-2" x-text="opt.desc"></span>
                     </div>
                 </template>
             </div>
-            <button @click="step = 1; answers = {}" class="w-full mt-8 py-2 text-gray-400 text-sm italic" x-text="lang === 'en' ? 'Start Over' : '重新開始'"></button>
         </div>
-    </div>
+
+        <div x-show="step === 4" x-transition>
+            <h2 class="text-3xl font-black mb-6" x-text="lang === 'zh' ? '為您推薦的專業鞋款' : 'Top Picks for You'"></h2>
+            
+            <div class="grid gap-6">
+                <template x-for="shoe in filteredShoes" :key="shoe.id">
+                    <div class="bg-white rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-center gap-6">
+                        <img :src="shoe.img" class="w-40 h-40 object-contain">
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="font-black text-xl leading-tight" x-text="lang === 'zh' ? shoe.name_zh : shoe.name_en"></h3>
+                            <div class="text-2xl font-black text-[#007ABD] my-2">$<span x-text="shoe.price"></span></div>
+                            <a :href="lang === 'zh' ? shoe.url_zh : shoe.url_en" target="_blank" 
+                               class="inline-block bg-decathlon text-white font-black px-8 py-3 rounded-full text-sm hover:bg-blue-700 transition-colors uppercase tracking-widest">
+                               Buy Now
+                            </a>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="filteredShoes.length === 0">
+                    <div class="text-center p-10 bg-white rounded-3xl shadow-inner">
+                        <p class="text-gray-400 font-bold" x-text="lang === 'zh' ? '找不到完全符合的鞋款，請試著調整需求。' : 'No exact match found. Try other options!'"></p>
+                    </div>
+                </template>
+            </div>
+
+            <button @click="reset()" class="w-full mt-10 py-4 text-gray-400 font-bold uppercase tracking-widest hover:text-gray-600 transition-colors" x-text="lang === 'zh' ? '重新開始' : 'Start Over'"></button>
+        </div>
+    </main>
 
     <script src="products.js"></script>
     <script>
-        function quizApp() {
+        function shoeApp() {
             return {
-                step: 1, lang: 'zh', answers: {},
+                step: 1,
+                lang: 'zh',
+                answers: { goal: '', budget: '' },
+                toggleLang() { this.lang = this.lang === 'en' ? 'zh' : 'en'; },
+                reset() { this.step = 1; this.answers = { goal: '', budget: '' }; },
+                
                 questions: {
-                    en: [
-                        { title: "Your Goal?", options: [{label: "Comfort", desc: "For slow daily runs", value: "comfort"}, {label: "Speed", desc: "For racing & PB", value: "performance"}] },
-                        { title: "Your Budget?", options: [{label: "$", desc: "Below 700", value: "low"}, {label: "$$$", desc: "Above 700", value: "high"}] }
-                    ],
                     zh: [
-                        { title: "你的目標？", options: [{label: "舒適避震", desc: "日常慢跑與恢復", value: "comfort"}, {label: "速度競賽", desc: "追求破紀錄的快感", value: "performance"}] },
-                        { title: "預算範圍？", options: [{label: "入門/進階", desc: "700 元以下", value: "low"}, {label: "專業旗艦", desc: "700 元以上", value: "high"}] }
+                        { title: "您的跑步目標？", subtitle: "這將決定鞋底的緩震技術", options: [{label:"日常慢跑", desc:"注重舒適與緩震，適合放鬆跑", value:"comfort"}, {label:"速度訓練", desc:"追求推進力與能量回饋", value:"performance"}] },
+                        { title: "您的預算範圍？", subtitle: "我們提供從入門到專業競技的選擇", options: [{label:"超值入門 ($ <700)", desc:"適合初學者或低頻率跑者", value:"low"}, {label:"專業旗艦 ($ >700)", desc:"搭載碳板或頂級科技泡棉", value:"high"}] }
+                    ],
+                    en: [
+                        { title: "Your Running Goal?", subtitle: "This determines the cushioning technology", options: [{label:"Daily Jogging", desc:"Focus on comfort & recovery", value:"comfort"}, {label:"Speed Training", desc:"Focus on energy return", value:"performance"}] },
+                        { title: "Your Budget?", subtitle: "Options from entry level to pro racing", options: [{label:"Great Value ($ <700)", desc:"Perfect for beginners", value:"low"}, {label:"Pro Performance ($ >700)", desc:"Carbon plate & premium foam", value:"high"}] }
                     ]
                 },
-                handleAnswer(val) {
-                    if(this.step === 1) this.answers.goal = val;
-                    if(this.step === 2) this.answers.budget = val;
+
+                currentQuestion() { return this.questions[this.lang][this.step - 1]; },
+
+                handleSelect(val) {
+                    if (this.step === 1) this.answers.goal = val;
+                    if (this.step === 2) this.answers.budget = val;
                     this.step++;
                 },
-                filteredShoes() {
+
+                get filteredShoes() {
                     return products.filter(p => {
                         const matchGoal = p.tags.includes(this.answers.goal);
-                        const matchBudget = (this.answers.budget === 'low' ? p.price < 700 : p.price >= 700);
+                        const matchBudget = (this.answers.budget === 'low') ? (p.price < 700) : (p.price >= 700);
                         return matchGoal && matchBudget;
                     }).slice(0, 3);
                 }
